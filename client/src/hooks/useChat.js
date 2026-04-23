@@ -70,37 +70,28 @@ export function useChat() {
     if (abortRef.current) abortRef.current.abort();
   }, []);
 
-  const editLastAndResend = useCallback((newText) => {
-    const trimmed = (newText || '').trim();
+  const resendWith = useCallback((text) => {
+    const trimmed = (text || '').trim();
     if (!trimmed) return;
     setMessages(prev => {
-      const idx = [...prev].reverse().findIndex(m => m.role === 'user');
-      if (idx === -1) return prev;
-      return prev.slice(0, prev.length - 1 - idx);
+      const lastUserIdx = prev.findLastIndex(m => m.role === 'user');
+      if (lastUserIdx === -1) return prev;
+      return prev.slice(0, lastUserIdx);
     });
     setTimeout(() => ask(trimmed), 0);
   }, [ask]);
 
+  const editLastAndResend = resendWith;
+
   const retry = useCallback(() => {
-    if (!lastQuestion) return;
-    setMessages(prev => {
-      const idx = [...prev].reverse().findIndex(m => m.role === 'user');
-      if (idx === -1) return prev;
-      return prev.slice(0, prev.length - idx);
-    });
-    ask(lastQuestion);
-  }, [ask, lastQuestion]);
+    if (lastQuestion) resendWith(lastQuestion);
+  }, [resendWith, lastQuestion]);
 
   const retryShort = useCallback(() => {
     if (!lastQuestion) return;
     const shortened = lastQuestion.length > 120 ? lastQuestion.slice(0, 120) + '…' : lastQuestion;
-    setMessages(prev => {
-      const idx = [...prev].reverse().findIndex(m => m.role === 'user');
-      if (idx === -1) return prev;
-      return prev.slice(0, prev.length - idx);
-    });
-    ask(shortened);
-  }, [ask, lastQuestion]);
+    resendWith(shortened);
+  }, [resendWith, lastQuestion]);
 
   const clearError = useCallback(() => setError(null), []);
 
